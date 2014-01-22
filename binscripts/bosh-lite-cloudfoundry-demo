@@ -146,6 +146,9 @@ set -e # exit on error
 export CF_RELEASE_DIR=${RELEASE_DIR}
 scripts/make_manifest_spiff
 
+# Parallelise the deployment!
+echo "  serial: false" >> manifests/cf-manifest.yml
+
 ##
 ## Deploy Cloud Foundry into our BOSH (bosh-lite)
 ## 
