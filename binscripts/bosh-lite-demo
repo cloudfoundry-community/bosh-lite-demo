@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 
+set +x
+
 ##
 ## Dependency locations
 ##
 BOSH_LITE_REPO=${BOSH_LITE_REPO:-https://github.com/cloudfoundry/bosh-lite.git}
-CF_RELEASE_VERSION=${CF_RELEASE_VERSION:-v154}
-CF_RELEASE_TGZ=${CF_RELEASE_TGZ:-https://github.com/cloudfoundry/cf-release/archive/$CF_RELEASE_VERSION.tar.gz}
+RELEASE_VERSION=${RELEASE_VERSION:-154}
+RELEASE_TGZ_URL=${RELEASE_TGZ:-https://github.com/cloudfoundry/cf-release/archive/v$RELEASE_VERSION.tar.gz}
+STEMCELL_NAME=${STEMCELL_NAME:-bosh-stemcell-24-warden-boshlite-ubuntu.tgz}
 
-WORKSPACE_DIR=${WORKSPACE_DIR:-$HOME/bosh-lite-turorial}
+WORKSPACE_DIR=${WORKSPACE_DIR:-$HOME/bosh-lite-tutorial}
+PROJECT_NAME=cf-release
+RELEASE_NAME=cf
+RELEASE_DIR=$WORKSPACE_DIR/$PROJECT_NAME-$RELEASE_VERSION
+SOURCE_RELEASE_TGZ=$WORKSPACE_DIR/$PROJECT_NAME-v$RELEASE_VERSION.tar.gz
+FINAL_RELEASE_TGZ=$RELEASE_DIR/releases/$RELEASE_NAME-$RELEASE_VERSION.tgz
 
 ##
 ## Verify local requirements
@@ -15,7 +23,7 @@ WORKSPACE_DIR=${WORKSPACE_DIR:-$HOME/bosh-lite-turorial}
 if [[ "${SKIP_VERIFY}X" == "X" ]]; then
     set +e
 
-    echo Required dependencies: ruby 1.9.3+, vagrant 1.4+, git 1.7+, wget.
+    echo Required dependencies: ruby 1.9.3, vagrant 1.4+, git 1.7+, wget, spiff 0.3+
     echo
 
     ruby_installed=$(which ruby)
@@ -34,11 +42,24 @@ if [[ "${SKIP_VERIFY}X" == "X" ]]; then
     wget --version | head -n1
 
     echo
-    if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" || "${wget_installed}" == "X" ]]; then
+    spiff_installed=$(which spiff)
+    spiff --version
+
+    echo
+    if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" || "${wget_installed}" == "X" || "${spiff_installed}X" == "X" ]]; then
         echo Please install the missing dependencies above.
+        echo
+        if [[ "${ruby_installed}X" == "X" ]]; then
+            echo ruby    - http://rvm.io
+        fi
+        if [[ "${vagrant_installed}X" == "X" ]]; then
+            echo vagrant - http://www.vagrantup.com/downloads.html
+        fi
+        if [[ "${spiff_installed}X" == "X" ]]; then
+            echo spiff   - https://github.com/cloudfoundry-incubator/spiff/releases
+        fi
         exit 1
     fi
-    set -e
     echo Press [ENTER] if your versions are ok, else Ctrl-C to cancel and manually install them.
     read
 
@@ -50,10 +71,65 @@ if [[ "${SKIP_VERIFY}X" == "X" ]]; then
     read
 fi
 
+set -e # exit on error
+set -x # show commands being run
+
 mkdir -p $WORKSPACE_DIR
 cd $WORKSPACE_DIR
 
-if [[ ! -d bosh-lite ]]; then
-    git clone $BOSH_LITE_REPO bosh-lite
+cd $WORKSPACE_DIR
+if [[ ! -f Gemfile ]]; then
+    echo "source 'https://rubygems.org'; gem 'bosh_cli'" > Gemfile
+    bundle install
 fi
+if [[ ! -f $SOURCE_RELEASE_TGZ ]]; then
+    wget $RELEASE_TGZ_URL -O $SOURCE_RELEASE_TGZ
+fi
+if [[ ! -d $RELEASE_DIR ]]; then
+    tar xfz $SOURCE_RELEASE_TGZ
+    cd $RELEASE_DIR
+    bundle install
+fi
+if [[ ! -f $FINAL_RELEASE_TGZ ]]; then
+    cd $RELEASE_DIR
+    rm -f Gemfile*
+    bundle exec bosh create release --force --with-tarball releases/cf-$RELEASE_VERSION.yml
+fi
+cd $WORKSPACE_DIR
+
+if [[ ! -d bosh-lite ]]; then
+    set -x
+    git clone $BOSH_LITE_REPO bosh-lite
+    cd bosh-lite
+    rm -f Gemfile*
+    set +x
+fi
+
+cd $WORKSPACE_DIR
+if [[ ! -f $STEMCELL_NAME ]]; then
+    bundle exec bosh download public stemcell $STEMCELL_NAME
+fi
+
+cd $WORKSPACE_DIR/bosh-lite
+
+if [[ "${NO_REBUILD}X" == "X" ]]; then
+    vagrant destroy -f
+fi
+vagrant up
+
+
+set +e # do not exit on error; allow these to fail if already performed
+yes admin | bosh target https://192.168.50.4:25555
+bosh upload release $FINAL_RELEASE_TGZ
+bosh upload stemcell $WORKSPACE_DIR/$STEMCELL_NAME
+set -e # exit on error
+
+# specifically for cf-release/bosh-lite need to setup $CF_RELEASE_DIR
+export CF_RELEASE_DIR=${RELEASE_DIR}
+scripts/make_manifest_spiff
+
+bosh -n deploy
+
+bosh status
+bosh vms
 
