@@ -4,10 +4,11 @@ This project includes an easy-to-run command that does everything to build [bosh
 
 Sections:
 
-* [FAQ](#FAQ)
-* [Quick Start](#Quick_Start)
-* [Concepts](#Concepts), while you wait
-* [Quick Shutdown](#Quick_Shutdown)
+  * [FAQ](#faq)
+* [Quick Start](#quick-start)
+* [Requirements](#requirements)
+* [Concepts](#concepts), while you wait
+* [Quick Shutdown](#quick-shutdown)
 
 ## FAQ
 
