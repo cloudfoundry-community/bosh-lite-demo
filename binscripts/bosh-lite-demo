@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+##
+## Verify local requirements
+##
+set +e
+
+echo Required dependencies: ruby 1.9.3+, vagrant 1.4+, git 1.7+
+echo
+
+ruby_installed=$(which ruby)
+ruby -v
+
+echo
+vagrant_installed=$(which vagrant)
+vagrant -v
+
+echo
+git_installed=$(which git)
+git --version
+
+echo
+if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" ]]; then
+    echo Please install the missing dependencies above.
+    exit 1
+fi
+set -e
+echo Press [ENTER] if your versions are ok, else Ctrl-C to cancel and manually install them.
+read
