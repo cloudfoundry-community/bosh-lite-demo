@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+##
+## This script boots up bosh-lite in a local Vagrant/Virtualbox VM,
+## then uploads and deploys Cloud Foundry into it.
+## Finally, it logs into Cloud Foundry as an admin user,
+## creates an initial organization and space,
+## then deploys an example application.
+##
+
 set +x
 
 ##
@@ -9,6 +17,9 @@ BOSH_LITE_REPO=${BOSH_LITE_REPO:-https://github.com/cloudfoundry/bosh-lite.git}
 RELEASE_VERSION=${RELEASE_VERSION:-154}
 RELEASE_TGZ_URL=${RELEASE_TGZ:-https://github.com/cloudfoundry/cf-release/archive/v$RELEASE_VERSION.tar.gz}
 STEMCELL_NAME=${STEMCELL_NAME:-bosh-stemcell-24-warden-boshlite-ubuntu.tgz}
+
+APPLICATION_URL=${APPLICATION_URL:-https://github.com/cloudfoundry-community/cf-env.git}
+APPLICATION_NAME=${APPLICATION_NAME:-cf-env}
 
 WORKSPACE_DIR=${WORKSPACE_DIR:-$HOME/bosh-lite-tutorial}
 PROJECT_NAME=cf-release
@@ -23,7 +34,7 @@ FINAL_RELEASE_TGZ=$RELEASE_DIR/releases/$RELEASE_NAME-$RELEASE_VERSION.tgz
 if [[ "${SKIP_VERIFY}X" == "X" ]]; then
     set +e
 
-    echo Required dependencies: ruby 1.9.3, vagrant 1.4+, git 1.7+, wget, spiff 0.3+
+    echo Required dependencies: ruby 1.9.3, vagrant 1.4+, git 1.7+, wget, spiff 0.3+, gcf 6.0+
     echo
 
     ruby_installed=$(which ruby)
@@ -46,7 +57,11 @@ if [[ "${SKIP_VERIFY}X" == "X" ]]; then
     spiff --version
 
     echo
-    if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" || "${wget_installed}" == "X" || "${spiff_installed}X" == "X" ]]; then
+    cf_installed=$(which gcf)
+    gcf --version
+
+    echo
+    if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" || "${wget_installed}" == "X" || "${spiff_installed}X" == "X" || "${cf_installed}X" == "X" ]]; then
         echo Please install the missing dependencies above.
         echo
         if [[ "${ruby_installed}X" == "X" ]]; then
@@ -57,6 +72,9 @@ if [[ "${SKIP_VERIFY}X" == "X" ]]; then
         fi
         if [[ "${spiff_installed}X" == "X" ]]; then
             echo spiff   - https://github.com/cloudfoundry-incubator/spiff/releases
+        fi
+        if [[ "${cf_installed}X" == "X" ]]; then
+            echo gcf     - https://github.com/cloudfoundry/cli#downloading-edge
         fi
         exit 1
     fi
@@ -128,8 +146,41 @@ set -e # exit on error
 export CF_RELEASE_DIR=${RELEASE_DIR}
 scripts/make_manifest_spiff
 
+##
+## Deploy Cloud Foundry into our BOSH (bosh-lite)
+## 
 bosh -n deploy
 
 bosh status
 bosh vms
 
+##
+## Setup Cloud Foundry
+##
+
+cd $WORKSPACE_DIR/bosh-lite
+./scripts/add-route # to access 10.244.0.34 via host machine
+
+gcf api https://api.10.244.0.34.xip.io
+gcf login -u admin -p admin
+
+gcf create-org me
+gcf target -o me
+
+gcf create-space test
+gcf target -s test
+
+##
+## Deploy example application
+##
+
+cd $WORKSPACE_DIR
+
+if [[ ! -d $APPLICATION_NAME ]]; then
+    git clone $APPLICATION_URL $APPLICATION_NAME
+fi
+cd $APPLICATION_NAME
+bundle
+gcf push $APPLICATION_NAME
+
+gcf apps
