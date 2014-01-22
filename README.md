@@ -8,6 +8,7 @@ Sections:
 * [Quick Start](#quick-start)
 * [Requirements](#requirements)
 * [Concepts](#concepts), while you wait
+* [Slow Start](#slow-start), step-by-step
 * [Quick Shutdown](#quick-shutdown)
 
 ## FAQ
@@ -52,17 +53,34 @@ If the script ever fails, re-run it and it will skip over any steps that were al
 
 ## Requirements
 
-* Ruby 1.9.3
-* Vagrant/Virtualbox 1.4+
-* wget
-* spiff
-* gcf
+For bosh-lite to boot up, it has the following requirements:
 
-The installer script will test for the existence of these requirements.
+* Vagrant/Virtualbox 1.4+ - for booting the bosh-lite virtual machine on your laptop
+* Ruby 1.9.3 - for the BOSH CLI
+
+The installer script uses the following to get some assets:
+
+* wget
+
+To deploy Cloud Foundry and then talk to Cloud Foundry as an administrator/user:
+
+* spiff - used to construct a large YAML file used to deploy BOSH releases
+* gcf - Cloud Foundry's own CLI for users and admins
+
+The installer script will test for the existence of these requirements. It's currently not clever enough to check for versions, so you will be prompted to confirm you have the right versions.
 
 ## Concepts
 
 The Quick Start will take a while. Or a long time if you have slow internet, downloading the 2G of bits and bobs.
+
+Let's learn something about BOSH.
+
+### Servers, VMs and jobs
+
+Concept number one is the Server. Also known as virtual machines, VMs, or `vms`.
+
+## Slow Start
+
 
 
 ## Quick Shutdown & Cleanup
