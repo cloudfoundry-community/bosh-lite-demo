@@ -165,7 +165,7 @@ cd $WORKSPACE_DIR/bosh-lite
 ./scripts/add-route # to access 10.244.0.34 via host machine
 
 gcf api https://api.10.244.0.34.xip.io
-gcf login -u admin -p admin
+gcf auth admin admin
 
 gcf create-org me
 gcf target -o me
