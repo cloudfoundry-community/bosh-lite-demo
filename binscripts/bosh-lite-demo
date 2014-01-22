@@ -1,29 +1,59 @@
 #!/usr/bin/env bash
 
 ##
+## Dependency locations
+##
+BOSH_LITE_REPO=${BOSH_LITE_REPO:-https://github.com/cloudfoundry/bosh-lite.git}
+CF_RELEASE_VERSION=${CF_RELEASE_VERSION:-v154}
+CF_RELEASE_TGZ=${CF_RELEASE_TGZ:-https://github.com/cloudfoundry/cf-release/archive/$CF_RELEASE_VERSION.tar.gz}
+
+WORKSPACE_DIR=${WORKSPACE_DIR:-$HOME/bosh-lite-turorial}
+
+##
 ## Verify local requirements
 ##
-set +e
+if [[ "${SKIP_VERIFY}X" == "X" ]]; then
+    set +e
 
-echo Required dependencies: ruby 1.9.3+, vagrant 1.4+, git 1.7+
-echo
+    echo Required dependencies: ruby 1.9.3+, vagrant 1.4+, git 1.7+, wget.
+    echo
 
-ruby_installed=$(which ruby)
-ruby -v
+    ruby_installed=$(which ruby)
+    ruby -v
 
-echo
-vagrant_installed=$(which vagrant)
-vagrant -v
+    echo
+    vagrant_installed=$(which vagrant)
+    vagrant -v
 
-echo
-git_installed=$(which git)
-git --version
+    echo
+    git_installed=$(which git)
+    git --version
 
-echo
-if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" ]]; then
-    echo Please install the missing dependencies above.
-    exit 1
+    echo
+    wget_installed=$(which wget)
+    wget --version | head -n1
+
+    echo
+    if [[ "${ruby_installed}X" == "X" || "${vagrant_installed}X" == "X" || "${git_installed}X" == "X" || "${wget_installed}" == "X" ]]; then
+        echo Please install the missing dependencies above.
+        exit 1
+    fi
+    set -e
+    echo Press [ENTER] if your versions are ok, else Ctrl-C to cancel and manually install them.
+    read
+
+    ##
+    ## Workspace setup
+    ##
+
+    echo Will use $WORKSPACE_DIR for this demo. Press [ENTER] or re-run with \$WORKSPACE_DIR set.
+    read
 fi
-set -e
-echo Press [ENTER] if your versions are ok, else Ctrl-C to cancel and manually install them.
-read
+
+mkdir -p $WORKSPACE_DIR
+cd $WORKSPACE_DIR
+
+if [[ ! -d bosh-lite ]]; then
+    git clone $BOSH_LITE_REPO bosh-lite
+fi
+
