@@ -4,7 +4,7 @@ This project includes an easy-to-run command that does everything to build [bosh
 
 Sections:
 
-  * [FAQ](#faq)
+* [FAQ](#faq)
 * [Quick Start](#quick-start)
 * [Requirements](#requirements)
 * [Concepts](#concepts), while you wait
