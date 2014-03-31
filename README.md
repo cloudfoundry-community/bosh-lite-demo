@@ -65,7 +65,7 @@ The installer script uses the following to get some assets:
 To deploy Cloud Foundry and then talk to Cloud Foundry as an administrator/user:
 
 * spiff - used to construct a large YAML file used to deploy BOSH releases
-* gcf - Cloud Foundry's own CLI for users and admins
+* cf - Cloud Foundry's own CLI for users and admins
 
 The installer script will test for the existence of these requirements. It's currently not clever enough to check for versions, so you will be prompted to confirm you have the right versions.
 
