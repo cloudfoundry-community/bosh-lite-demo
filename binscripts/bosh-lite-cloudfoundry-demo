@@ -144,7 +144,8 @@ set -e # exit on error
 
 # specifically for cf-release/bosh-lite need to setup $CF_RELEASE_DIR
 export CF_RELEASE_DIR=${RELEASE_DIR}
-scripts/make_manifest_spiff
+# was scripts/make_manifest_spiff # wrong path
+bin/make_manifest_spiff
 
 # Parallelise the deployment!
 echo "  serial: false" >> manifests/cf-manifest.yml
